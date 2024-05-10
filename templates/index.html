@@ -9,11 +9,14 @@ content %} Hello {{session["user_name"]}}
 </head>
 <body>
     <h1>Weather App</h1>
+    <h1>Current Weather </h1>
     <button id="get-location-btn">Get My Location</button>
     <div id="weather-info">
         {{ weather }}
-    </div>s
-
+    </div>
+<div>
+  
+</div>
     <script>
         document.getElementById('get-location-btn').addEventListener('click', () => {
             if (navigator.geolocation) {
@@ -22,34 +25,33 @@ content %} Hello {{session["user_name"]}}
                 alert("Geolocation is not supported by this browser.");
             }
         });
-
         function showWeather(position) {
-            const latitude = position.coords.latitude;
-            const longitude = position.coords.longitude;
+    const latitude = position.coords.latitude;
+    const longitude = position.coords.longitude;
 
-            fetch('/weather', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    latitude: latitude,
-                    longitude: longitude
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                const weatherInfo = `
-                    <p>Temperature: ${data.temperature}°K</p>
-                    <p>Humidity: ${data.humidity}%</p>
-                    <p>Wind Speed: ${data.wind_speed} m/s</p>
-                `;
-                document.getElementById('weather-info').innerHTML = weatherInfo;
-            })
-            .catch(error => {
-                console.error('Error fetching weather data:', error);
-                document.getElementById('weather-info').innerHTML = 'Failed to fetch weather data.';
-            });
+    fetch('/weather', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            latitude: latitude,
+            longitude: longitude
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        let weatherInfo = '';
+        for (const [key, value] of Object.entries(data)) {
+            weatherInfo += `<p>${key}: ${value}</p>`;
+        }
+        document.getElementById('weather-info').innerHTML = weatherInfo;
+    })
+    .catch(error => {
+        console.error('Error fetching weather data:', error);
+        document.getElementById('weather-info').innerHTML = 'Failed to fetch weather data.';
+    });
+
         }
     </script>
 </body>
