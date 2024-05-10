@@ -10,6 +10,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from modules import login_required, get_weather
 import secrets
 from flask import Flask, render_template, request, jsonify
+from flask import jsonify
 import requests
 
 
@@ -22,19 +23,6 @@ migrate = Migrate(app, db)
 app.secret_key = secrets.token_hex(32)
 app.static_folder = "static"  # Set the static folder to 'static'
 app.static_url_path = "/static"
-
-
-@app.route("/weather", methods=["Post", "Get"])
-def weather():
-    data = request.json
-    latitude = data["latitude"]
-    longitude = data["longitude"]
-    api_key = "d495a5a47d128d9101c11798dc2ddef7"  # Replace with your actual OpenWeatherMap API key
-    weather_data = get_weather(latitude, longitude, api_key)
-    if "error" in weather_data:
-        return {"error": weather_data, "status": 500}
-    else:
-        return render_template("index.html", weather=weather_data)
 
 
 @app.after_request
@@ -138,6 +126,20 @@ def login():
 def logout():
     session.clear()
     return redirect("/login")
+
+
+@app.route("/weather", methods=["Post", "Get"])
+def weather():
+    data = request.json
+    latitude = data["latitude"]
+    longitude = data["longitude"]
+
+    api_key = "2e6ed688a3309aea7d1e6b24845c94d9"  # Replace with your actual OpenWeatherMap API key
+    weather_data = get_weather(latitude, longitude, api_key)
+    if "error" in weather_data:
+        return {"error": weather_data, "status": 500}
+    else:
+        return jsonify(weather_data)
 
 
 if __name__ == "__main__":
