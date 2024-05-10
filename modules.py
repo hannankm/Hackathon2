@@ -1,5 +1,6 @@
 from flask import redirect, render_template, session
 from functools import wraps
+import requests
 
 
 def login_required(f):
@@ -16,3 +17,17 @@ def login_required(f):
         return f(*args, **kwargs)
 
     return decorated_function
+
+
+def get_weather(latitude, longitude, api_key):
+    weather_url = f"https://api.openweathermap.org/data/2.5/weather?lat={latitude}&lon={longitude}&appid={api_key}"
+    response = requests.get(weather_url)
+    if response.status_code == 200:
+        weather_data = response.json()
+        return {
+            "temperature": weather_data["main"]["temp"],
+            "humidity": weather_data["main"]["humidity"],
+            "wind_speed": weather_data["wind"]["speed"],
+        }
+    else:
+        return {"error": "Failed to fetch weather data"}
