@@ -7,8 +7,11 @@ from sqlalchemy import text
 from flask_session import Session
 from flask_migrate import Migrate
 from werkzeug.security import check_password_hash, generate_password_hash
-from modules import login_required
+from modules import login_required, get_weather
 import secrets
+from flask import Flask, render_template, request, jsonify
+import requests
+
 
 app = Flask(__name__)
 app.debug = True
@@ -21,6 +24,19 @@ app.static_folder = "static"  # Set the static folder to 'static'
 app.static_url_path = "/static"
 
 
+@app.route("/weather", methods=["Post", "Get"])
+def weather():
+    data = request.json
+    latitude = data["latitude"]
+    longitude = data["longitude"]
+    api_key = "d495a5a47d128d9101c11798dc2ddef7"  # Replace with your actual OpenWeatherMap API key
+    weather_data = get_weather(latitude, longitude, api_key)
+    if "error" in weather_data:
+        return {"error": weather_data, "status": 500}
+    else:
+        return render_template("index.html", weather=weather_data)
+
+
 @app.after_request
 def after_request(response):
     """Ensure responses aren't cached"""
@@ -30,7 +46,7 @@ def after_request(response):
     return response
 
 
-#models definition
+# models definition
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(255), nullable=False)
@@ -39,45 +55,46 @@ class User(db.Model):
     role = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, default=db.func.utcnow)
 
-# routes definition 
+
+# routes definition
 @app.route("/", methods=["GET", "POST"])
 @login_required
 def index():
     # login required a
     name = "hanan"
-    return render_template("index.html", name = name)
+    return render_template("index.html", name=name)
+
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
         if not request.form.get("name"):
             error_message = "Must provide name"
-            return render_template("register.html", error= error_message)
+            return render_template("register.html", error=error_message)
         if not request.form.get("email"):
             error_message = "Error: Must provide email"
-            return render_template("register.html", error= error_message)
+            return render_template("register.html", error=error_message)
         user = User.query.filter_by(email=request.form.get("email")).first()
         if user:
             error_message = "Error: Email is already registered"
-            return render_template("register.html", error= error_message)
+            return render_template("register.html", error=error_message)
         if not request.form.get("password") or not request.form.get("confirm"):
             error_message = "Must provide password"
-            return render_template("register.html", error= error_message)
+            return render_template("register.html", error=error_message)
         if request.form.get("password") != request.form.get("confirm"):
             error_message = "Passwords don't match"
-            return render_template("register.html", error= error_message)
+            return render_template("register.html", error=error_message)
         user = User(
             name=request.form.get("name"),
             email=request.form.get("email"),
             password=generate_password_hash(request.form.get("password")),
-            role = "user",
+            role="user",
             created_at=datetime.now(),
         )
         db.session.add(user)
         db.session.commit()
-        flash('Register successful, Login to access your account!', 'success')
+        flash("Register successful, Login to access your account!", "success")
         return redirect("/register")
-
 
     return render_template("register.html")
 
@@ -90,25 +107,26 @@ def login():
 
     if request.method == "POST":
         if not request.form.get("email"):
-           error_message = "Error: Must provide email"
-           return render_template("login.html", error= error_message)
+            error_message = "Error: Must provide email"
+            return render_template("login.html", error=error_message)
 
         elif not request.form.get("password"):
             error_message = "Error: Must provide password"
-            return render_template("login.html", error= error_message)
+            return render_template("login.html", error=error_message)
 
         user = User.query.filter_by(email=request.form.get("email")).first()
 
         if not user or not check_password_hash(
-            user.password, request.form.get("password" )
+            user.password, request.form.get("password")
         ):
-            return render_template("login.html", error= "Error: Email and/or Password is incorrect! ")
-
+            return render_template(
+                "login.html", error="Error: Email and/or Password is incorrect! "
+            )
 
         session["user_id"] = user.id
         session["user_name"] = user.name
 
-        flash('Login successful!', 'success')
+        flash("Login successful!", "success")
 
         return redirect("/")
 
@@ -121,6 +139,6 @@ def logout():
     session.clear()
     return redirect("/login")
 
+
 if __name__ == "__main__":
     app.run()
-
